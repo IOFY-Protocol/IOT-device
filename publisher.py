@@ -35,7 +35,7 @@ def publish(client):
     msg_count = 0
     while True:
         time.sleep(1)
-        msg = f"messages: {msg_count}"
+        msg = f"{msg_count}"
         result = client.publish(topic, msg)
         # result: [0, 1]
         status = result[0]

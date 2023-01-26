@@ -4,11 +4,16 @@ import random
 from decouple import config
 from paho.mqtt import client as mqtt_client
 from mypackage.lock_state import *
+from apscheduler.schedulers.background import BackgroundScheduler
+
+# Creates a default Background Scheduler
+sched = BackgroundScheduler()
 
 broker = config('BROKER')
 port = int(config('PORT'))
 lockTopic = config('LOCK_TOPIC')
 ackTopic = config('ACK_TOPIC')
+rtTopic = config('RT_TOPIC')
 topic = [("IOFY/ID/lock",0),("IOFY/ID/ACK/test",0)]
 # generate client ID with pub prefix randomly
 client_id = f'python-mqtt-{random.randint(0, 100)}'
@@ -39,10 +44,17 @@ def on_message(client, userdata, msg):
             print("lock device")
             lock_state()
             publish_ack(client, "ACK")
+            if sched.state != 0:
+                stop_rt_data()
         elif msg.payload.decode() == "0":
             print("unlock device")
             unlock_state()
             publish_ack(client, "ACK")
+            if sched.state == 0:
+                send_rt_data(client)
+        elif msg.payload.decode() == "7":
+            if sched.state != 0:
+                stop_rt_data()
         else:
             print("lock Device Error")
             publish_ack(client, "NACK")
@@ -58,6 +70,27 @@ def publish_ack(client: mqtt_client, msg):
         print(f"Send `{msg}` to topic `{ackTopic}`")
     else:
         print(f"Failed to send message to topic {ackTopic}")
+
+def send_rt_data(client):
+    print("start sending real time data")
+    sched.add_job(RTData,'interval', seconds=5, args=(client,))
+    sched.start()
+
+def stop_rt_data():
+    print("stop sending real time data")
+    sched.shutdown()
+  
+def RTData(client):
+    print("send real time data")
+    data = random.randint(0, 1000)
+    msg = f"{data}"
+    result = client.publish(rtTopic, msg)
+    # result: [0, 1]
+    status = result[0]
+    if status == 0:
+        print(f"Send `{msg}` to topic `{rtTopic}`")
+    else:
+        print(f"Failed to send message to topic {rtTopic}")
 
 
 def run():

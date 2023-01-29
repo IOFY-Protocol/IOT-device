@@ -14,9 +14,15 @@ port = int(config('PORT'))
 lockTopic = config('LOCK_TOPIC')
 ackTopic = config('ACK_TOPIC')
 rtTopic = config('RT_TOPIC')
-topic = [("IOFY/ID/lock",0),("IOFY/ID/ACK/test",0)]
+getIdTopic = config('GET_ID_TOPIC')
+deviceIdTopic = config('DEVICE_ID_TOPIC')
+
+
+topic = [("IOFY/ID/lock",0),("IOFY/ID/ACK/test",0),(getIdTopic,0)]
 # generate client ID with pub prefix randomly
-client_id = f'python-mqtt-{random.randint(0, 100)}'
+deviceId = config('ID')
+client_id = deviceId
+
 
 
 
@@ -58,6 +64,10 @@ def on_message(client, userdata, msg):
         else:
             print("lock Device Error")
             publish_ack(client, "NACK")
+    elif msg.topic == getIdTopic:
+        if msg.payload.decode() == "getId":
+            print("sending device ID")
+            send_id(client, deviceId)
     else:
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 
@@ -70,6 +80,16 @@ def publish_ack(client: mqtt_client, msg):
         print(f"Send `{msg}` to topic `{ackTopic}`")
     else:
         print(f"Failed to send message to topic {ackTopic}")
+
+def send_id(client: mqtt_client, msg):
+    #msg = f"{msg_count}"
+    result = client.publish(deviceIdTopic, msg)
+    # result: [0, 1]
+    status = result[0]
+    if status == 0:
+        print(f"Send `{msg}` to topic `{deviceIdTopic}`")
+    else:
+        print(f"Failed to send message to topic {deviceIdTopic}")
 
 def send_rt_data(client):
     print("start sending real time data")

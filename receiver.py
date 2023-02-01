@@ -17,11 +17,11 @@ rtTopic = config('RT_TOPIC')
 getIdTopic = config('GET_ID_TOPIC')
 deviceIdTopic = config('DEVICE_ID_TOPIC')
 
-
-topic = [("IOFY/ID/lock",0),("IOFY/ID/ACK/test",0),(getIdTopic,0)]
-# generate client ID with pub prefix randomly
 deviceId = config('ID')
 client_id = deviceId
+topic = [("IOFY/ID/lock"+"/"+deviceId,0),("IOFY/ID/ACK/test",0),(getIdTopic,0)]
+# generate client ID with pub prefix randomly
+
 
 
 
@@ -45,7 +45,7 @@ def subscribe(client: mqtt_client):
     client.on_message = on_message
 
 def on_message(client, userdata, msg):
-    if msg.topic == lockTopic :
+    if msg.topic == lockTopic+"/"+deviceId :
         if msg.payload.decode() == "1":
             print("lock device")
             lock_state()
